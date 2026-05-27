@@ -1,0 +1,25 @@
+{"anchor": "如何使用Python进行机器学习模型训练", "positive": "Python机器学习入门指南：使用scikit-learn库训练分类模型，包括数据预处理、特征工程、模型选择和评估等步骤。"}
+{"anchor": "什么是Transformer架构", "positive": "Transformer是一种基于自注意力机制的神经网络架构，由Google在2017年提出，广泛应用于自然语言处理任务中。"}
+{"anchor": "Docker容器化部署教程", "positive": "Docker快速入门：学习如何创建Dockerfile、构建镜像、运行容器以及使用docker-compose编排多容器应用。"}
+{"anchor": "Git版本控制基本操作", "positive": "Git使用指南：包含git init、git add、git commit、git push、git pull、git branch等常用命令的详细说明和最佳实践。"}
+{"anchor": "MySQL数据库性能优化", "positive": "MySQL性能调优手册：涵盖索引优化、查询优化、配置参数调整、慢查询分析和分库分表策略。"}
+{"anchor": "React框架状态管理", "positive": "React状态管理方案对比：useState、useReducer、Context API、Redux、Zustand等方案的适用场景和使用方法。"}
+{"anchor": "Linux系统安全管理", "positive": "Linux安全加固指南：包括用户权限管理、防火墙配置、SSH安全设置、日志审计和入侵检测等内容。"}
+{"anchor": "微服务架构设计模式", "positive": "微服务架构实战：服务拆分原则、API网关、服务注册发现、配置中心、链路追踪等核心组件的设计与实现。"}
+{"anchor": "深度学习模型部署上线", "positive": "深度学习模型部署实践：模型导出、ONNX转换、TensorRT加速、Flask/FastAPI服务化部署和Docker容器化方案。"}
+{"anchor": "NLP文本分类任务实现", "positive": "自然语言处理文本分类教程：使用BERT预训练模型进行文本分类，包括数据预处理、模型微调、评估指标和推理部署。"}
+{"anchor": "Kubernetes集群管理运维", "positive": "Kubernetes运维指南：集群部署、Pod管理、Service配置、Ingress路由、HPA自动扩缩容和故障排查方法。"}
+{"anchor": "Redis缓存系统使用", "positive": "Redis实战教程：五种数据类型操作、持久化策略、主从复制、哨兵模式和集群部署的完整学习路径。"}
+{"anchor": "前端性能优化技巧", "positive": "Web前端性能优化全攻略：代码分割、懒加载、图片优化、CDN加速、缓存策略和Core Web Vitals指标优化。"}
+{"anchor": "Python异步编程asyncio", "positive": "Python asyncio异步编程详解：协程、事件循环、Task、Future、异步上下文管理器和aiohttp异步HTTP客户端的使用。"}
+{"anchor": "机器学习特征工程方法", "positive": "机器学习特征工程实践：数值特征标准化、类别特征编码、文本特征提取、时间特征构造和特征选择方法汇总。"}
+{"anchor": "Spring Boot应用开发", "positive": "Spring Boot快速开发指南：自动配置原理、Starter依赖、Web开发、数据访问、安全认证和监控管理的完整教程。"}
+{"anchor": "Elasticsearch搜索引擎", "positive": "Elasticsearch从入门到精通：安装部署、索引管理、查询DSL、聚合分析、集群优化和与Spring Boot集成实战。"}
+{"anchor": "CI/CD持续集成部署", "positive": "CI/CD流水线搭建实践：使用Jenkins/GitHub Actions实现代码构建、自动化测试、镜像打包和Kubernetes部署的完整流程。"}
+{"anchor": "TensorFlow深度学习框架", "positive": "TensorFlow 2.x实战教程：Keras API、自定义模型、数据管道tf.data、分布式训练和模型部署的系统学习指南。"}
+{"anchor": "Go语言并发编程", "positive": "Go语言并发编程详解：goroutine协程、channel通道、select多路复用、sync包同步原语和并发模式最佳实践。"}
+{"anchor": "网络安全渗透测试", "positive": "Web安全渗透测试入门：SQL注入、XSS跨站脚本、CSRF攻击、文件上传漏洞的原理分析和防御方法。"}
+{"anchor": "大数据Hadoop生态系统", "positive": "Hadoop大数据技术栈：HDFS分布式存储、MapReduce计算模型、YARN资源调度、Hive数据仓库和Spark内存计算的架构与实践。"}
+{"anchor": "Vue.js前端框架开发", "positive": "Vue 3 Composition API实战：响应式原理、组件通信、Vuex/Pinia状态管理、Vue Router路由和Vite构建工具的使用。"}
+{"anchor": "PostgreSQL高级特性", "positive": "PostgreSQL高级教程：窗口函数、CTE递归查询、JSONB操作、全文搜索、分区表和性能优化的深入讲解。"}
+{"anchor": "DevOps工程实践方法", "positive": "DevOps文化与实践：持续交付、基础设施即代码、监控告警、混沌工程和SRE站点可靠性工程的核心理念与工具链。"}

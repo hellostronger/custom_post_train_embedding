@@ -1,0 +1,5 @@
+{"messages": [{"role": "user", "content": "Python数据可视化工具"}, {"role": "assistant", "content": "Python数据可视化指南：Matplotlib基础绑图、Seaborn统计图表、Plotly交互式图表和Pyecharts中国地图可视化教程。"}]}
+{"messages": [{"role": "user", "content": "消息队列RabbitMQ使用"}, {"role": "assistant", "content": "RabbitMQ消息队列实战：AMQP协议、交换机类型、队列绑定、消息确认和Spring Boot集成的完整开发教程。"}]}
+{"messages": [{"role": "user", "content": "机器学习模型评估指标"}, {"role": "assistant", "content": "机器学习评估指标详解：准确率、精确率、召回率、F1分数、AUC-ROC曲线、混淆矩阵和交叉验证方法。"}]}
+{"messages": [{"role": "user", "content": "Nginx反向代理配置"}, {"role": "assistant", "content": "Nginx高性能Web服务器配置：反向代理、负载均衡、SSL证书配置、动静分离和性能调优的实战指南。"}]}
+{"messages": [{"role": "user", "content": "PyTorch神经网络训练"}, {"role": "assistant", "content": "PyTorch深度学习入门：张量操作、自动求导、nn.Module模块、数据加载器和GPU加速训练的完整教程。"}]}

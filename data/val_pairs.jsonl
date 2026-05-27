@@ -1,0 +1,5 @@
+{"query": "Python数据可视化工具", "positive": "Python数据可视化指南：Matplotlib基础绑图、Seaborn统计图表、Plotly交互式图表和Pyecharts中国地图可视化教程。"}
+{"query": "消息队列RabbitMQ使用", "positive": "RabbitMQ消息队列实战：AMQP协议、交换机类型、队列绑定、消息确认和Spring Boot集成的完整开发教程。"}
+{"query": "机器学习模型评估指标", "positive": "机器学习评估指标详解：准确率、精确率、召回率、F1分数、AUC-ROC曲线、混淆矩阵和交叉验证方法。"}
+{"query": "Nginx反向代理配置", "positive": "Nginx高性能Web服务器配置：反向代理、负载均衡、SSL证书配置、动静分离和性能调优的实战指南。"}
+{"query": "PyTorch神经网络训练", "positive": "PyTorch深度学习入门：张量操作、自动求导、nn.Module模块、数据加载器和GPU加速训练的完整教程。"}
