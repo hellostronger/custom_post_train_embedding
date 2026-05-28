@@ -72,6 +72,7 @@ def step2_sentence_transformers_train(
             SentenceTransformer,
             SentenceTransformerTrainer,
             SentenceTransformerTrainingArguments,
+            models,
             losses,
         )
         from datasets import load_dataset
@@ -81,12 +82,40 @@ def step2_sentence_transformers_train(
         sys.exit(1)
 
     # 加载扩展后的模型
+    # 对于 Qwen3-Embedding 等非标准 ST 架构，需要显式构造模块
     print(f"加载扩展后的模型: {expanded_model_path}")
-    model = SentenceTransformer(
-        expanded_model_path,
-        trust_remote_code=True,
-        model_kwargs={"torch_dtype": torch.float16},
-    )
+    try:
+        # 先尝试标准加载（如果模型有 ST 配置）
+        model = SentenceTransformer(
+            expanded_model_path,
+            trust_remote_code=True,
+            model_kwargs={"torch_dtype": torch.float16},
+        )
+        # 检查 pooling 是否为 last_token（Qwen3-Embedding 需要）
+        pooling_module = model._last_module()
+        if hasattr(pooling_module, 'pooling_mode') and not pooling_module.pooling_mode_last_token:
+            print(f"警告：标准加载的 pooling 模式为 {pooling_module.pooling_mode}，"
+                  f"Qwen3-Embedding 应使用 last_token，将重新构造")
+            raise ValueError("pooling mode mismatch")
+    except Exception as e:
+        print(f"使用显式模块构造: {e}")
+        # 显式构造：Transformer + Pooling
+        word_embedding_model = models.Transformer(
+            expanded_model_path,
+            trust_remote_code=True,
+            model_args={"torch_dtype": torch.float16},
+        )
+        hidden_size = word_embedding_model.auto_model.config.hidden_size
+
+        pooling_model = models.Pooling(
+            hidden_size,
+            pooling_mode_mean_tokens=False,
+            pooling_mode_last_token=True,
+            pooling_mode_cls_token=False,
+            pooling_mode_max_tokens=False,
+        )
+        model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
+
     model.max_seq_length = max_seq_length
 
     # 加载训练数据

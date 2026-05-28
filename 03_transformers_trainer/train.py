@@ -15,11 +15,9 @@ import os
 import json
 import torch
 import torch.nn.functional as F
-import numpy as np
 import argparse
 from pathlib import Path
 from dataclasses import dataclass
-from typing import Optional
 
 from torch.utils.data import Dataset
 from transformers import (
@@ -27,7 +25,6 @@ from transformers import (
     AutoModel,
     Trainer,
     TrainingArguments,
-    PreTrainedModel,
 )
 
 project_root = Path(__file__).resolve().parent.parent
@@ -133,15 +130,43 @@ class PairCollator:
 
 
 # ============================================================
-# 步骤4：Mean Pooling 工具函数
+# 步骤4：Pooling 工具函数
 # ============================================================
 def mean_pooling(model_output, attention_mask):
-    """对 token embeddings 做 mean pooling，用 attention mask 掩盖 padding"""
+    """Mean pooling：对所有有效 token 的 hidden state 取平均"""
     token_embeddings = model_output.last_hidden_state
     input_mask = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
     return torch.sum(token_embeddings * input_mask, 1) / torch.clamp(
         input_mask.sum(1), min=1e-9
     )
+
+
+def last_token_pooling(model_output, attention_mask):
+    """
+    Last-token pooling：取每个序列最后一个有效 token 的 hidden state。
+    适用于 decoder-only 模型（如 Qwen3、LLaMA 等），这类模型通常
+    用最后一个 token 的表示来概括整个序列。
+    """
+    token_embeddings = model_output.last_hidden_state
+    # 找到每个序列最后一个非 padding token 的位置
+    # attention_mask: [batch, seq_len]，最后一个 1 的位置
+    sequence_lengths = attention_mask.sum(dim=1) - 1  # [batch]
+    batch_size = token_embeddings.size(0)
+    # 取出对应位置的 embedding
+    return token_embeddings[
+        torch.arange(batch_size, device=token_embeddings.device),
+        sequence_lengths,
+    ]
+
+
+def get_pooling_fn(pooling_mode: str):
+    """根据 pooling_mode 返回对应的 pooling 函数"""
+    if pooling_mode == "last_token":
+        return last_token_pooling
+    elif pooling_mode == "mean":
+        return mean_pooling
+    else:
+        raise ValueError(f"不支持的 pooling 模式: {pooling_mode}，可选: mean, last_token")
 
 
 # ============================================================
@@ -154,6 +179,11 @@ class EmbeddingTrainer(Trainer):
     其他所有 positive 均为 negative。
     """
 
+    def __init__(self, pooling_fn=None, temperature=0.05, *args, **kwargs):
+        self.pooling_fn = pooling_fn or mean_pooling
+        self.temperature = temperature
+        super().__init__(*args, **kwargs)
+
     def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
         query_ids = inputs["query_input_ids"]
         query_mask = inputs["query_attention_mask"]
@@ -162,17 +192,16 @@ class EmbeddingTrainer(Trainer):
 
         # 编码 query
         query_out = model(input_ids=query_ids, attention_mask=query_mask)
-        query_emb = mean_pooling(query_out, query_mask)
+        query_emb = self.pooling_fn(query_out, query_mask)
         query_emb = F.normalize(query_emb, p=2, dim=1)
 
         # 编码 positive
         pos_out = model(input_ids=pos_ids, attention_mask=pos_mask)
-        pos_emb = mean_pooling(pos_out, pos_mask)
+        pos_emb = self.pooling_fn(pos_out, pos_mask)
         pos_emb = F.normalize(pos_emb, p=2, dim=1)
 
         # 计算相似度矩阵
-        temperature = 0.05
-        logits = torch.matmul(query_emb, pos_emb.T) / temperature
+        logits = torch.matmul(query_emb, pos_emb.T) / self.temperature
         labels = torch.arange(logits.size(0), device=logits.device)
 
         # 双向 InfoNCE loss
@@ -225,10 +254,14 @@ def step2_train(
     warmup_ratio: float = 0.1,
     max_seq_length: int = 512,
     gradient_accumulation_steps: int = 4,
+    pooling_mode: str = "mean",
 ):
     print("\n" + "=" * 60)
     print("步骤2：Transformers Trainer 自定义训练")
     print("=" * 60)
+
+    pooling_fn = get_pooling_fn(pooling_mode)
+    print(f"Pooling 模式: {pooling_mode}")
 
     # 加载扩展后的模型
     print(f"加载扩展后的模型: {expanded_model_path}")
@@ -281,6 +314,7 @@ def step2_train(
         args=training_args,
         train_dataset=train_dataset,
         data_collator=data_collator,
+        pooling_fn=pooling_fn,
     )
 
     # 开始训练
@@ -289,8 +323,9 @@ def step2_train(
 
     # 保存模型
     if use_lora:
-        # LoRA 模型：先合并权重再保存
+        # LoRA 模型：合并权重后保存
         merged_dir = os.path.join(output_dir, "final_merged")
+        model = model.merge_and_unload()
         model.save_pretrained(merged_dir)
         tokenizer.save_pretrained(merged_dir)
         print(f"\n训练完成！合并后模型保存在: {merged_dir}")

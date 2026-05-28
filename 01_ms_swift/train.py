@@ -58,6 +58,7 @@ def step2_swift_sft(
     train_data_path: str,
     val_data_path: str,
     output_dir: str,
+    model_type: str = "qwen3-embedding-0.6b",
     lora_rank: int = 8,
     num_epochs: int = 3,
     batch_size: int = 4,
@@ -75,9 +76,26 @@ def step2_swift_sft(
         print("或: pip install ms-swift[llm]")
         sys.exit(1)
 
+    from transformers import AutoTokenizer
+
+    print(f"model_type: {model_type}")
+    print(f"model_path: {expanded_model_path}")
+
+    # 检查扩展后模型的词表大小
+    expanded_tokenizer = AutoTokenizer.from_pretrained(
+        expanded_model_path, trust_remote_code=True
+    )
+    expanded_vocab_size = len(expanded_tokenizer)
+    print(f"扩展后模型词表大小: {expanded_vocab_size}")
+    del expanded_tokenizer
+
     # ms-swift 使用 messages 格式的 JSONL 数据
+    # model_type 需要匹配 ms-swift 支持的类型，常见值：
+    #   qwen3-embedding-0.6b / qwen3-embedding-4b / qwen3-embedding-8b
+    #   qwen2.5-0.5b / qwen2.5-1.5b / qwen2.5-3b / qwen2.5-7b
+    #   查看全部: swift sft --help | grep model_type
     args = SftArguments(
-        model_type="qwen3-embedding-0.6b",
+        model_type=model_type,
         model_id_or_path=expanded_model_path,
         dataset=[train_data_path],
         val_dataset=[val_data_path],
@@ -99,6 +117,23 @@ def step2_swift_sft(
         gradient_checkpointing=True,
         max_length=512,
     )
+
+    # 验证 ms-swift 加载的 tokenizer 词表是否与扩展后模型一致
+    swift_vocab_size = len(args.tokenizer)
+    print(f"ms-swift tokenizer 词表大小: {swift_vocab_size}")
+
+    if swift_vocab_size != expanded_vocab_size:
+        print(f"警告：ms-swift tokenizer 词表大小 ({swift_vocab_size}) 与扩展后模型 ({expanded_vocab_size}) 不一致")
+        print("尝试从扩展后模型路径重新加载 tokenizer ...")
+        fixed_tokenizer = AutoTokenizer.from_pretrained(
+            expanded_model_path, trust_remote_code=True
+        )
+        if len(fixed_tokenizer) == expanded_vocab_size:
+            args.tokenizer = fixed_tokenizer
+            print(f"已修正 tokenizer，词表大小: {len(args.tokenizer)}")
+        else:
+            print("错误：无法修正 tokenizer 词表，训练可能无法正确使用扩展的 token")
+            print("请确认 expanded_dir 中保存的是扩展词表后的模型")
 
     result = sft_main(args)
     print(f"\n训练完成！模型保存在: {output_dir}")
@@ -146,6 +181,12 @@ def main():
         help="LoRA 微调输出目录",
     )
     parser.add_argument("--lora_rank", type=int, default=8, help="LoRA rank")
+    parser.add_argument(
+        "--model_type",
+        type=str,
+        default="qwen3-embedding-0.6b",
+        help="ms-swift model_type（如 qwen3-embedding-0.6b, qwen2.5-0.5b 等，用 swift sft --help 查看）",
+    )
     parser.add_argument("--epochs", type=int, default=3, help="训练轮数")
     parser.add_argument("--batch_size", type=int, default=4, help="批大小")
     parser.add_argument("--lr", type=float, default=1e-4, help="学习率")
@@ -165,6 +206,7 @@ def main():
         train_data_path=args.train_data,
         val_data_path=args.val_data,
         output_dir=args.output_dir,
+        model_type=args.model_type,
         lora_rank=args.lora_rank,
         num_epochs=args.epochs,
         batch_size=args.batch_size,
