@@ -1,0 +1,19 @@
+# Qwen Embedding 扩词表微调 - 依赖清单
+
+# ============ 核心依赖（所有方案共用） ============
+torch>=2.0
+transformers>=4.40
+
+# ============ 方案1：ms-swift ============
+# ms-swift[llm]  # 安装命令: pip install ms-swift[llm]
+
+# ============ 方案2：Sentence-Transformers ============
+sentence-transformers>=3.0
+datasets
+
+# ============ 方案3：Transformers Trainer ============
+# transformers 和 datasets 已在核心依赖中
+peft>=0.10  # 可选，用于 LoRA 微调
+
+# ============ 开发工具（可选） ============
+# jupyter  # 如需交互式调试
