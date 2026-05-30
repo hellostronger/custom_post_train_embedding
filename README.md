@@ -15,7 +15,8 @@
 ```
 .
 ├── common/
-│   └── vocab_expansion.py     # 扩词表通用工具（三个方案共用）
+│   ├── vocab_expansion.py     # 扩词表通用工具（三个方案共用）
+│   └── mine_tokens.py         # 新词挖掘工具（从语料中自动发现领域术语）
 ├── data/
 │   ├── new_tokens.txt          # 要添加的领域专用 token
 │   ├── train_pairs.jsonl       # 训练数据 (query/positive 对)
@@ -68,6 +69,52 @@
 {"anchor": "...", "positive": "..."}
 ```
 
+## 新词挖掘
+
+`common/mine_tokens.py` 提供从领域语料自动挖掘新词的能力，无需人工维护 `new_tokens.txt`。
+
+### 输入格式
+
+支持任意 JSONL 格式，自动从所有字符串字段提取文本：
+
+| 格式 | 示例 | 适用数据文件 |
+|------|------|-------------|
+| query/pos/neg | `{"query": "...", "pos": ["..."], "neg": ["..."]}` | `train_pairs.jsonl` |
+| query/positive | `{"query": "...", "positive": "..."}` | `sample_train.jsonl` |
+| anchor/positive | `{"anchor": "...", "positive": "..."}` | `st_train.jsonl` |
+| messages | `{"messages": [{"role": "...", "content": "..."}]}` | `swift_train.jsonl` |
+
+### 使用方法
+
+```bash
+python -m common.mine_tokens \
+  --model Qwen/Qwen3-Embedding-0.6B \
+  --corpus data/train_pairs.jsonl \
+  --output data/new_tokens.txt \
+  --top_k 100 \
+  --min_freq 3
+```
+
+### 参数说明
+
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `--model` | `Qwen/Qwen3-Embedding-0.6B` | 基础模型，用于判断哪些词是新词 |
+| `--corpus` | 必填 | 训练语料 JSONL 路径 |
+| `--output` | `data/new_tokens_mined.txt` | 输出文件（一行一个 token） |
+| `--top_k` | `100` | 输出候选词数量 |
+| `--min_freq` | `3` | 最低出现频次 |
+| `--ngram_min` | `2` | 中文 n-gram 最小长度 |
+| `--ngram_max` | `6` | 中文 n-gram 最大长度 |
+
+### 挖掘原理
+
+1. **提取候选词** — 中文 n-gram（2-6字）+ 英文单词（≥3字母）
+2. **频次过滤** — 只保留出现频次 ≥ `min_freq` 的候选
+3. **tokenizer 过滤** — 只保留被拆成 ≥2 个 subtoken 的候选（词表中缺失的）
+4. **PMI 打分** — 用逐点互信息衡量字符结合紧密程度，过滤随机组合
+5. **排序输出** — 按 PMI 分数排序，输出 Top-K
+
 ## 快速开始
 
 选择一个方案，进入对应目录查看 README：
@@ -94,5 +141,9 @@ python train.py --use_lora
 1. 准备 query-positive 对，写入 `data/train_pairs.jsonl`
 2. 如需使用 ms-swift，转换为 messages 格式写入 `data/swift_train.jsonl`
 3. 如需使用 Sentence-Transformers，确保列名为 `anchor`/`positive`
-4. 添加领域专用 token 到 `data/new_tokens.txt`
+4. **挖掘领域专用 token**：
+   ```bash
+   python -m common.mine_tokens --corpus data/train_pairs.jsonl --output data/new_tokens.txt
+   ```
+   或手动添加到 `data/new_tokens.txt`（每行一个）
 5. 运行对应方案的 `train.py`
