@@ -92,22 +92,27 @@ def compute_pmi(
     candidates: dict[str, int],
     char_freq: Counter,
     total_chars: int,
+    word_freq: Counter = None,
+    total_words: int = 0,
 ) -> dict[str, float]:
     """
     计算候选词的 PMI（逐点互信息）。
 
-    PMI(w) = log(P(w) / ∏P(c_i))
-    其中 P(w) 是词的频率，P(c_i) 是组成字符的频率。
+    中文词：PMI(w) = log(P(w) / ∏P(c_i))，基于字符频率
+    英文词：PMI(w) = log(P(w) / ∏P(subword_i))，基于子词（字符序列）频率
 
-    PMI 越高，说明字符之间的结合越紧密，越可能是真正的词。
+    PMI 越高，说明组成单元之间的结合越紧密，越可能是真正的词。
     """
+    if word_freq is None:
+        word_freq = Counter()
+
     scores = {}
     for candidate, count in candidates.items():
-        if total_chars == 0:
-            continue
-        p_word = count / total_chars
-        # 对中文计算字符级 PMI，英文直接用词频
+        # 中文词：基于字符计算 PMI
         if all("一" <= c <= "鿿" for c in candidate):
+            if total_chars == 0:
+                continue
+            p_word = count / total_chars
             log_p_components = 0.0
             valid = True
             for c in candidate:
@@ -118,8 +123,43 @@ def compute_pmi(
             if valid and log_p_components != 0:
                 scores[candidate] = math.log(p_word) - log_p_components
         else:
-            # 英文词：用词频作为分数
-            scores[candidate] = math.log(p_word + 1e-10)
+            # 英文词：基于子词/字符组合计算 PMI
+            if total_words == 0:
+                continue
+            p_word = count / total_words
+            # 将英文词拆分为字符对（bigram）来估算内部凝聚力
+            # 例如 "embedding" -> ["em", "mb", "be", "ed", "dd", "di", "in", "ng"]
+            if len(candidate) < 2:
+                # 单字符词，直接用词频
+                scores[candidate] = math.log(p_word + 1e-10)
+            else:
+                # 计算字符 bigram 频率
+                bigram_freq = Counter()
+                total_bigrams = 0
+                for word, freq in word_freq.items():
+                    for i in range(len(word) - 1):
+                        bigram_freq[word[i : i + 2]] += freq
+                        total_bigrams += freq
+
+                if total_bigrams == 0:
+                    scores[candidate] = math.log(p_word + 1e-10)
+                    continue
+
+                log_p_components = 0.0
+                valid = True
+                for i in range(len(candidate) - 1):
+                    bigram = candidate[i : i + 2]
+                    if bigram_freq.get(bigram, 0) == 0:
+                        valid = False
+                        break
+                    log_p_components += math.log(bigram_freq[bigram] / total_bigrams)
+
+                if valid and log_p_components != 0:
+                    # 归一化：除以 bigram 数量，使不同长度词可比
+                    num_bigrams = len(candidate) - 1
+                    scores[candidate] = (math.log(p_word) - log_p_components) / num_bigrams
+                else:
+                    scores[candidate] = math.log(p_word + 1e-10)
 
     return scores
 
@@ -177,16 +217,24 @@ def mine_tokens(
         return
 
     # 5. PMI 打分
-    # 统计字符频率（用于 PMI 计算）
+    # 分别统计中文字符频率和英文单词频率
     char_freq = Counter()
     total_chars = 0
+    word_freq = Counter()
+    total_words = 0
+
     for text in texts:
+        # 统计中文字符
         for c in text:
             if "一" <= c <= "鿿":
                 char_freq[c] += 1
                 total_chars += 1
+        # 统计英文单词
+        for word in re.compile(r"[a-zA-Z]+").findall(text):
+            word_freq[word.lower()] += 1
+            total_words += 1
 
-    scores = compute_pmi(filtered, char_freq, total_chars)
+    scores = compute_pmi(filtered, char_freq, total_chars, word_freq, total_words)
 
     # 6. 按分数排序输出
     ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)
